@@ -40,7 +40,7 @@
 
 ### 环境要求
 
-- .NET 8.0 SDK 或更高版本
+- [.NET 8.0 SDK 或更高版本](https://dotnet.microsoft.com/zh-cn/download/dotnet/8.0)
 - Visual Studio 2022 或兼容的IDE
 - Windows操作系统
 
