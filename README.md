@@ -1,5 +1,9 @@
 # DesktopListViewModifier
 
+## 语言
+- [中文](README.md) - 中文版README
+- [English](README_EN.md) - English version README
+
 一个用于修改Windows桌面图标视图模式的工具，可以将桌面图标切换为详细信息视图，并支持恢复默认的大图标视图。
 
 ## 功能特点
