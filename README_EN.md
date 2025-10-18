@@ -9,10 +9,12 @@ A Windows desktop icon view modifier tool that allows you to easily switch betwe
 ## Features
 
 ✅ **View Switching**: Quickly switch between Details view and Large icons view with one click
-✅ **Auto-refresh**: Automatically refreshes the desktop after changing views
+✅ **Text Color Customization**: Set desktop text color to white (for dark backgrounds) or black (for light backgrounds)
+✅ **Auto-refresh**: Automatically refreshes the desktop after changing views or text colors
 ✅ **Explorer Restart**: Automatically restarts Windows Explorer to apply view changes
-✅ **Registry Backup**: Backs up and restores desktop view settings
+✅ **Registry Backup**: Backs up and restores desktop view settings and text color preferences
 ✅ **Admin Support**: Includes administrator privilege handling for system-level modifications
+✅ **Persistence**: Text color settings are automatically saved and persist after system restart
 
 ## Screenshots
 
@@ -28,15 +30,18 @@ A Windows desktop icon view modifier tool that allows you to easily switch betwe
 2. Run the program with administrator privileges (Windows may require admin rights to modify desktop settings)
 3. Click the "Set Details View" button to switch to Details view
 4. Click the "Set Large Icons View" button to switch to Large icons view
+5. Click the "Set Text to White (for Dark Backgrounds)" button to change desktop text color to white
+6. Click the "Set Text to Black (for Light Backgrounds)" button to change desktop text color to black
 
 ## Technical Implementation
 
-The tool interacts with Windows Explorer's SysListView32 control through Windows API calls to modify desktop view settings. Key implementations include:
+The tool interacts with Windows Explorer's SysListView32 control through Windows API calls to modify desktop view settings and text colors. Key implementations include:
 
 - **Win32 API Integration**: Uses FindWindowEx, SendMessage, and EnumWindows functions
-- **Registry Manipulation**: Stores view settings in the Windows Registry
+- **Text Color Control**: Uses LVM_GETTEXTCOLOR and LVM_SETTEXTCOLOR messages to modify text color
+- **Registry Manipulation**: Stores view settings and text color preferences in the Windows Registry
 - **Explorer Process Management**: Handles Explorer restart to apply changes
-- **ListView Control Interaction**: Modifies ListView styles and attributes
+- **ListView Control Interaction**: Modifies ListView styles, view modes, and text attributes
 
 ## Compilation Instructions
 
