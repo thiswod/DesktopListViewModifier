@@ -52,7 +52,6 @@ namespace DesktopListViewModifier
             // 程序启动时检查注册表中的桌面视图设置
             CheckAndApplySavedView();
         }
-        
         /// <summary>
         /// 将桌面视图设置保存到注册表的多个关键位置以确保持久化
         /// </summary>
