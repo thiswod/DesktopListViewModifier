@@ -107,8 +107,7 @@ namespace DesktopListViewModifier
                         }
                         else
                         {
-                            // 大图标视图的完整标志值
-                            key.SetValue(BagsDesktopFFlags, 0x40000001, RegistryValueKind.DWord);
+                            key.SetValue(BagsDesktopFFlags, 0x40200024, RegistryValueKind.DWord); // 十进制1075839524
                             key.SetValue("LogicalViewMode", 1, RegistryValueKind.DWord);
                         }
                     }
@@ -223,21 +222,28 @@ namespace DesktopListViewModifier
                             {
                                 // 应用视图设置
                                 SendMessage(hDesktopListView, LVM_SETVIEW, useDetailsView ? LV_VIEW_DETAILS : LV_VIEW_LARGEICON, 0);
-                                
-                                // 对于详细信息视图，使用更强的确保策略
+                                 
+                                // 为详细信息视图添加额外的确保策略
                                 if (useDetailsView)
                                 {
                                     // 额外添加一次设置以确保生效
                                     await System.Threading.Tasks.Task.Delay(300);
                                     SendMessage(hDesktopListView, LVM_SETVIEW, LV_VIEW_DETAILS, 0);
                                 }
+                                // 为大图标视图也添加额外的确保策略
+                                else
+                                {
+                                    // 额外添加一次设置以确保生效
+                                    await System.Threading.Tasks.Task.Delay(300);
+                                    SendMessage(hDesktopListView, LVM_SETVIEW, LV_VIEW_LARGEICON, 0);
+                                }
                                 
                                 // 强制刷新
                                 ForceDesktopRefresh();
-                                
+                                 
                                 // 给系统时间处理视图更改
                                 await System.Threading.Tasks.Task.Delay(1000);
-                                
+                                 
                                 // 标记为已应用
                                 viewApplied = true;
                             }
@@ -464,7 +470,7 @@ namespace DesktopListViewModifier
                             {
                                 // 应用视图设置
                                 SendMessage(hDesktopListView, LVM_SETVIEW, useDetailsView ? LV_VIEW_DETAILS : LV_VIEW_LARGEICON, 0);
-                                
+                                 
                                 // 如果是详细信息视图，再额外设置一次以确保生效
                                 if (useDetailsView)
                                 {
@@ -472,7 +478,14 @@ namespace DesktopListViewModifier
                                     System.Threading.Thread.Sleep(500);
                                     SendMessage(hDesktopListView, LVM_SETVIEW, LV_VIEW_DETAILS, 0);
                                 }
-                                
+                                // 如果是大图标视图，也额外设置一次以确保生效
+                                else
+                                {
+                                    // 延迟一小段时间后再次应用
+                                    System.Threading.Thread.Sleep(500);
+                                    SendMessage(hDesktopListView, LVM_SETVIEW, LV_VIEW_LARGEICON, 0);
+                                }
+                                 
                                 ForceDesktopRefresh();
                             }
                         };
