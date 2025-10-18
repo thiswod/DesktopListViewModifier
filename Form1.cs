@@ -10,11 +10,17 @@ namespace DesktopListViewModifier
         // Windows API 常量
         private const int LVM_FIRST = 0x1000;
         private const int LVM_SETVIEW = LVM_FIRST + 142;
+        private const int LVM_GETTEXTCOLOR = LVM_FIRST + 35;
+        private const int LVM_SETTEXTCOLOR = LVM_FIRST + 36;
         private const int LV_VIEW_DETAILS = 0x0001;
         private const int LV_VIEW_LARGEICON = 0x0000;
         private const int WM_SETTINGCHANGE = 0x001A;
         private const uint SHCNE_ASSOCCHANGED = 0x8000000;
         private const int SHCNF_IDLIST = 0x0000; // 使用PIDL格式
+        
+        // 注册表路径 - 用于保存文字颜色设置
+        private const string DesktopTextColorPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced";
+        private const string DesktopTextColorValueName = "ListViewTextColor"; // 自定义值名用于保存文字颜色
         
         // 注册表路径
         private const string BagsDesktopPath = "Software\\Microsoft\\Windows\\Shell\\Bags\\1\\Desktop";
@@ -38,6 +44,9 @@ namespace DesktopListViewModifier
         private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
         
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+        
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessageTimeout(IntPtr hWnd, int Msg, int wParam, string lParam, uint fuFlags, uint uTimeout, out uint lpdwResult);
         
         [DllImport("shell32.dll")]
@@ -48,9 +57,12 @@ namespace DesktopListViewModifier
         }
 
         private void Form1_Load(object sender, EventArgs e)
-        {
+        {            
             // 程序启动时检查注册表中的桌面视图设置
             CheckAndApplySavedView();
+            
+            // 尝试应用已保存的文字颜色设置
+            ApplySavedTextColor();
         }
         /// <summary>
         /// 将桌面视图设置保存到注册表的多个关键位置以确保持久化
@@ -263,6 +275,110 @@ namespace DesktopListViewModifier
             {
                 // 确保重置标志
                 _isRestartingExplorer = false;
+            }
+        }
+        
+        /// <summary>
+        /// 设置桌面图标的文字颜色
+        /// </summary>
+        /// <param name="color">要设置的颜色（RGB格式）</param>
+        /// <returns>是否成功设置颜色</returns>
+        private bool SetDesktopTextColor(int color)
+        {            
+            try
+            {                
+                IntPtr hDesktopListView = GetDesktopListViewHandle();
+                if (hDesktopListView != IntPtr.Zero)
+                {                    
+                    // 获取当前颜色
+                    int currentColor = SendMessage(hDesktopListView, LVM_GETTEXTCOLOR, IntPtr.Zero, IntPtr.Zero);
+                    Console.WriteLine($"当前文字颜色: {currentColor:X}");
+                    
+                    // 设置新颜色
+                    int result = SendMessage(hDesktopListView, LVM_SETTEXTCOLOR, IntPtr.Zero, (IntPtr)color);
+                    
+                    if (result != 0)
+                    {                        
+                        // 保存颜色设置到注册表
+                        SaveTextColorToRegistry(color);
+                        
+                        // 强制刷新以应用更改
+                        ForceDesktopRefresh();
+                        
+                        Console.WriteLine($"文字颜色已设置为: {color:X}");
+                        return true;
+                    }
+                    else
+                    {                        
+                        Console.WriteLine("设置文字颜色失败");
+                    }
+                }                
+                else                
+                {                    
+                    Console.WriteLine("未找到桌面ListView句柄");                
+                }
+            }
+            catch (Exception ex)            
+            {                
+                Console.WriteLine($"设置文字颜色时出错: {ex.Message}");            
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// 将文字颜色设置保存到注册表
+        /// </summary>
+        /// <param name="color">RGB颜色值</param>
+        private void SaveTextColorToRegistry(int color)
+        {            
+            try            
+            {                
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(DesktopTextColorPath, true))                
+                {                    
+                    if (key != null)                    
+                    {                        
+                        key.SetValue(DesktopTextColorValueName, color, RegistryValueKind.DWord);                    
+                    }                
+                }
+            }            
+            catch (Exception ex)            
+            {                
+                Console.WriteLine($"保存文字颜色设置失败: {ex.Message}");            
+            }
+        }
+        
+        /// <summary>
+        /// 应用已保存的文字颜色设置
+        /// </summary>
+        private void ApplySavedTextColor()        
+        {            
+            try            
+            {                
+                using (RegistryKey key = Registry.CurrentUser.OpenSubKey(DesktopTextColorPath, false))                
+                {                    
+                    if (key != null)                    
+                    {                        
+                        object colorValue = key.GetValue(DesktopTextColorValueName);                        
+                        if (colorValue != null)                        
+                        {                            
+                            int color = Convert.ToInt32(colorValue);                            
+                            // 创建定时器，在Explorer完全加载后应用颜色设置                            
+                            System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();                            
+                            timer.Interval = 4000; // 等待Explorer完全加载                            
+                            timer.Tick += (s, e) =>                            
+                            {                                
+                                timer.Stop();                                
+                                // 应用已保存的颜色设置                                
+                                SetDesktopTextColor(color);                            
+                            };
+                            timer.Start();                        
+                        }                    
+                    }                
+                }
+            }            
+            catch (Exception ex)            
+            {                
+                Console.WriteLine($"应用文字颜色设置失败: {ex.Message}");            
             }
         }
         
@@ -500,30 +616,82 @@ namespace DesktopListViewModifier
         private static extern bool RedrawWindow(IntPtr hWnd, IntPtr lprcUpdate, IntPtr hrgnUpdate, uint flags);
 
         private void button2_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                // 首先显示提示，说明将要发生什么
+        {            
+            try            
+            {                
+                // 首先显示提示，说明将要发生什么                
                 DialogResult result = MessageBox.Show(
                     "即将恢复桌面视图为大图标模式并重启资源管理器。\n此操作将保存设置并确保重启后保持设置。", 
                     "确认操作", 
                     MessageBoxButtons.OKCancel, 
                     MessageBoxIcon.Information);
                 
-                if (result == DialogResult.OK)
-                {
-                    // 保存设置到注册表并重启Explorer以确保持久化
-                    // 使用默认参数（true）重启Explorer
+                if (result == DialogResult.OK)                
+                {                    
+                    // 保存设置到注册表并重启Explorer以确保持久化                    
+                    // 使用默认参数（true）重启Explorer                    
                     SaveDesktopViewToRegistry(false);
                     
-                    // 由于Explorer会重启，我们不在这里显示成功消息
-                }
-            }
-            catch (Exception ex)
-            {
+                    // 由于Explorer会重启，我们不在这里显示成功消息                
+                }            
+            }            
+            catch (Exception ex)            
+            {                
                 MessageBox.Show($"操作失败: {ex.Message}", "错误",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);            
+            }        
+        }
+        
+        /// <summary>
+        /// 设置桌面文字为白色（用于黑色背景）
+        /// </summary>
+        private void button3_Click(object sender, EventArgs e)
+        {            
+            try            
+            {                
+                // 白色的RGB值
+                int whiteColor = 0xFFFFFF; // 白色
+                
+                if (SetDesktopTextColor(whiteColor))                
+                {                    
+                    MessageBox.Show("桌面文字颜色已成功设置为白色！\n适用于黑色背景的桌面。", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);                
+                }                
+                else                
+                {                    
+                    MessageBox.Show("设置桌面文字颜色失败，可能需要管理员权限。\n请尝试以管理员身份运行程序。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);                
+                }            
+            }            
+            catch (Exception ex)            
+            {                
+                MessageBox.Show($"操作失败: {ex.Message}", "错误",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);            
+            }        
+        }
+        
+        /// <summary>
+        /// 设置桌面文字为黑色（默认颜色，用于浅色背景）
+        /// </summary>
+        private void button4_Click(object sender, EventArgs e)
+        {            
+            try            
+            {                
+                // 黑色的RGB值（或者让系统使用默认值）
+                int blackColor = 0x000000; // 黑色
+                
+                if (SetDesktopTextColor(blackColor))                
+                {                    
+                    MessageBox.Show("桌面文字颜色已成功设置为黑色！\n适用于浅色背景的桌面。", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);                
+                }                
+                else                
+                {                    
+                    MessageBox.Show("设置桌面文字颜色失败，可能需要管理员权限。\n请尝试以管理员身份运行程序。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);                
+                }            
+            }            
+            catch (Exception ex)            
+            {                
+                MessageBox.Show($"操作失败: {ex.Message}", "错误",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);            
+            }        
         }
         private IntPtr GetDesktopListViewHandle()
         {
