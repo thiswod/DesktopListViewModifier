@@ -10,7 +10,7 @@ A Windows desktop icon view modifier tool that allows you to easily switch betwe
 
 ✅ **View Switching**: Quickly switch between Details view and Large icons view with one click
 ✅ **Text Color Customization**: Set desktop text color to white (for dark backgrounds) or black (for light backgrounds)
-✅ **Auto-refresh**: Automatically refreshes the desktop after changing views or text colors
+✅ **Immediate Application**: Ensures settings take effect immediately through Explorer restart
 ✅ **Explorer Restart**: Automatically restarts Windows Explorer to apply view changes
 ✅ **Registry Backup**: Backs up and restores desktop view settings and text color preferences
 ✅ **Admin Support**: Includes administrator privilege handling for system-level modifications
@@ -27,21 +27,37 @@ A Windows desktop icon view modifier tool that allows you to easily switch betwe
 ## Usage
 
 1. Download the latest release from the [Releases](https://github.com/thiswod/DesktopListViewModifier/releases) page
-2. Run the program with administrator privileges (Windows may require admin rights to modify desktop settings)
+2. Run the program with administrator privileges (Windows requires admin rights to modify registry and restart Explorer)
 3. Click the "Set Details View" button to switch to Details view
 4. Click the "Set Large Icons View" button to switch to Large icons view
 5. Click the "Set Text to White (for Dark Backgrounds)" button to change desktop text color to white
 6. Click the "Set Text to Black (for Light Backgrounds)" button to change desktop text color to black
+7. When prompted, confirm restarting Windows Explorer to apply the changes
+8. After Explorer restarts, you will see the settings have taken effect
+
+### Text Color Setting Notes:
+- After clicking "Set Text to White" or "Set Text to Black" buttons, the program will prompt to restart Explorer
+- Confirm the restart and the desktop icon text color will update immediately
+- Color settings are saved in the registry and will persist even after system restarts
 
 ## Technical Implementation
 
-The tool interacts with Windows Explorer's SysListView32 control through Windows API calls to modify desktop view settings and text colors. Key implementations include:
+This tool modifies desktop settings by changing Windows Registry values and restarting Explorer to apply changes:
 
-- **Win32 API Integration**: Uses FindWindowEx, SendMessage, and EnumWindows functions
-- **Text Color Control**: Uses LVM_GETTEXTCOLOR and LVM_SETTEXTCOLOR messages to modify text color
-- **Registry Manipulation**: Stores view settings and text color preferences in the Windows Registry
-- **Explorer Process Management**: Handles Explorer restart to apply changes
-- **ListView Control Interaction**: Modifies ListView styles, view modes, and text attributes
+1. **View Mode Modification**:
+   - Modifies the `FFlags` value in `Software\Microsoft\Windows\Shell\Bags\1\Desktop` registry path
+   - Uses predefined values to set Details view or Large icons view
+   - Restarts Explorer to apply changes immediately
+
+2. **Text Color Settings**:
+   - Modifies custom values in `Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced` registry path
+   - Saves color settings for automatic application when the program restarts
+   - Restarts Explorer after user confirmation to make color settings take effect
+
+3. **Persistence Mechanism**:
+   - All settings are stored in the Windows Registry
+   - The program attempts to read and apply saved settings on startup
+   - Explorer restart ensures settings take effect immediately and persist
 
 ## Compilation Instructions
 
